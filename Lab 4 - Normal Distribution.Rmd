@@ -1,0 +1,266 @@
+---
+title: "Lab 4 - Normal Distribution"
+author: "Cassandra Boylan"
+date: "`r Sys.Date()`"
+output: openintro::lab_report
+---
+
+### Load packages
+```{r load-data, message=FALSE}
+library(tidyverse)
+library(openintro)
+head(fastfood)
+```
+
+```{r subset-by-restarurant}
+mcdonalds <- fastfood %>%
+  filter(restaurant == "Mcdonalds")
+
+dairy_queen <- fastfood %>%
+  filter(restaurant == "Dairy Queen")
+```
+
+### Exercise 1
+```{r plot-mcd}
+ggplot(mcdonalds, aes(x=cal_fat)) + geom_histogram(binwidth = 40) + labs(x="calories from fat", y="items on menu", title ="McDonalds")
+```
+
+McDonalds has a much larger spread to its data with significant outliers. The IQR looks to be within to 100-400 calorie range. There is a definable center to the data around 200-300 calorie value.  The shape appears somewhat symmetrical and bell curved although there is second peak nearer to 100 calories.
+  
+```{r plot-dq}
+ggplot(dairy_queen, aes(x=cal_fat)) + geom_histogram(binwidth = 40) + labs(x="calories from fat", y="items on menu", title="Dairy Queen")
+```
+  
+Dairy Queen has a center around 150 with some skew to the left.  The data also appears somewhat bell curved and symmetrical around its center.
+
+
+### Exercise 2
+
+```{r dq-measures-of-center-calories}
+dqmean <- mean(dairy_queen$cal_fat)
+dqsd   <- sd(dairy_queen$cal_fat)
+```
+
+```{r hist-dq}
+ggplot(data = dairy_queen, aes(x = cal_fat)) +
+        geom_blank() +
+        geom_histogram(aes(y = ..density..)) +
+        stat_function(fun = dnorm, args = c(mean = dqmean, sd = dqsd), col = "tomato")
+```
+
+The density function appears to have a fairly flat but undeniable unimodal shape where its peak has greatest density.  I would agree that this data is normally distributed.
+
+```{r qq}
+ggplot(data = dairy_queen, aes(sample = cal_fat)) + 
+  geom_line(stat = "qq")
+```
+
+```{r sim-norm}
+sim_norm <- rnorm(n = nrow(dairy_queen), mean = dqmean, sd = dqsd)
+```
+
+### Exercise 3
+
+```{r}
+qqnorm(sim_norm)
+qqline(sim_norm)
+```
+
+Not all the points fall entirely on the line as this is randomized simulated data; the residuals look to be very small however which makes sense since this is simulated normally distributed data.
+
+```{r}
+qqnorm(dairy_queen$cal_fat,main="QQ Plot: DQ - Calories from Fat")
+qqline(dairy_queen$cal_fat)
+```
+In the probability plot of the real data, the datapoints do adhere to a linear pattern indicating normal distribution but lift upward and away from the theoretical line.  This indicates that the actual values are much greater than the expected values if this data were perfectly and normally symmetrical.  The lift indicates that this is skewed to the right - most data points are distributed on the left with a long tail of extreme values to the right.  This lines up with what we saw in the histogram of the same data.
+
+### Exercise 4
+```{r qqnormsim}
+qqnormsim(sample = cal_fat, data = dairy_queen)
+```
+
+Yes, the actual real data looks pretty similar to the simulations.  The lift at the far right is still noticeably different than the normally distributed simulations - that deviation indicates some deviation away from being symmetrically distributed.
+
+### Exercise 5
+The points show a more noticeable curve rather than a straight line in this qq plot.  The lift at the top right is much more pronounced - the deviation away from linearity indicates deviation away from the data being normally distributed.  
+  
+Again, the lift of actual data vs the expected indicates the data is again skewed to the right. This curve is more pronounced in McDonald's menu items than in DQ's.   McDonalds has more extreme values is its tail to the right than DQ has.
+```{r qq-plots}
+ggplot(data = mcdonalds, aes(sample = cal_fat)) + 
+  geom_line(stat = "qq")
+
+qqnormsim(sample = cal_fat, data = mcdonalds)
+```
+
+```{r mcd-measures-of-center}
+mcdmean <- mean(mcdonalds$cal_fat)
+mcdsd   <- sd(mcdonalds$cal_fat)
+```
+
+```{r sim-norm-mcd}
+sim_norm_mcd <- rnorm(n = nrow(mcdonalds), mean = mcdmean, sd = mcdsd)
+```
+
+```{r}
+qqnorm(sim_norm_mcd)
+qqline(sim_norm_mcd)
+```
+
+```{r}
+qqnorm(mcdonalds$cal_fat, main="QQ Plot: McD - Calories from Fat")
+qqline(mcdonalds$cal_fat)
+```
+
+### Exercise 6
+
+Let's say I am looking to start eating healthier, starting with choosing more healthier menu items when eating fastfood.  Since the recommended amount of calories from fat is about 600 (or 30% of a traditional 2000), I'm only looking for menu items that are will account for roughly 1/3 of this total daily amount. I want to know what the probability is that an menu item that either mcd's or dq offers will be within 150 to 250 calories from fat.  Enough fat to taste, but not enough for heartburn :)
+
+**Theoretical probability that menu item from Dairy Queen is between 150 to 250 calories:**
+```{r}
+round(pnorm(q = 250, mean = dqmean, sd = dqsd) - 
+  pnorm(q = 150, mean = dqmean, sd = dqsd),3)
+```
+  
+**Empirical probability that menu item from Dairy Queen is between 150 to 250 calories:**
+```{r probability-dq calories}
+dairy_queen %>% 
+  filter(cal_fat >= 150 & cal_fat <= 250) %>%
+  summarise(percent = n() / nrow(dairy_queen))
+```
+
+**Theoretical probability that menu item from McDonalds is between 150 to 250 calories:**
+```{r}
+round(pnorm(q = 250, mean = mcdmean, sd = mcdsd) - 
+  pnorm(q = 150, mean = mcdmean, sd = mcdsd),3)
+```
+  
+**Empirical probability that menu item from McDonalds is between 150 to 250 calories:**
+```{r probability-mcd calories}
+mcdonalds %>% 
+  filter(cal_fat >= 150 & cal_fat <= 250) %>%
+  summarise(percent = n() / nrow(mcdonalds))
+```
+
+The theoretical probability (based on assumption of normal distribution) gave a much slimmer probability of a menu item being within the range of 150 and 250 calories, respectively 23% and 16.7%.  When looking at the means and standard deviation of the 2 distributions, this makes sense that 100 calorie range below mean would net these values.  
+
+However - unsurprisingly since we viewed the data visually and know that majority of the distribution for both Dairy Queen and McDonalds is skewed to the right - the empirical probabilities in both cases is much greater.   
+
+There is a 38% empirical probability of a menu item having between 150 and 250 calories from fat in the case of DQ, and a 36.8% probability in the case of McDonalds. The right tails of both distributions indicate that there are extreme values distorting the average of this dataset, suggesting a center much farther to the right than actually exists.  
+
+Of the two, DQ had a closer predicted theoretical probability - 15% off (38 - 23) than McDonalds - 20% off (36.8 - 16.7).  This is also unsurprising given that we the more significant lift in the QQ plot of McDonalds, indicating that McDonald's had more extreme values than did DQ, and therefore more greatly distorting the actual center and spread.
+
+### Exercise 7
+Evaluating for Normal Distribution in Sodium by Restaurant:
+  
+On review of the QQ plots of each restaurant, it appears that Arby's, Burger King, and Taco Bell most clearly mirror a normal distribution.  There was some curvature in Chick-Fil-A, Sonic, and Subway; the most pronounced lift (indicating right skew) appears in Dairy Queen and McDonalds.  
+  
+**Histograms of Sodium Distribution**    
+```{r plot-hist-all-restaurants}
+ggplot(fastfood, aes(x=sodium)) + geom_histogram(binwidth = 60) + labs(x="sodium", y="items on menu", title="Sodium Amount per Item") +
+  facet_wrap(~fastfood$restaurant)
+```
+
+**Normal Probability Plots for Sodium Distribution**
+```{r qq-plot-all-restaurants}
+ggplot(data = fastfood, aes(sample = sodium))+ 
+  geom_line(stat = "qq") +  
+  facet_wrap(~fastfood$restaurant)
+```
+
+**Creating Indvl QQ-Plots of Sodium Distribution**
+```{r subset each sample observations by restaurant}
+restaurants <- fastfood %>% distinct(restaurant)
+
+chick_fil_a <- fastfood %>%
+  filter(restaurant == "Chick Fil-A")
+
+sonic <- fastfood %>%
+  filter(restaurant == "Sonic")
+
+arbys <- fastfood %>%
+  filter(restaurant == "Arbys")
+
+burger_king <- fastfood %>%
+  filter(restaurant == "Burger King")
+
+subway <- fastfood %>%
+  filter(restaurant == "Subway")
+
+taco_bell <- fastfood %>%
+  filter(restaurant == "Taco Bell")
+
+```
+    
+**Sonic**
+```{r qq-plots-sonic }
+qqnorm(sonic$sodium,main="QQ Plot: Sonic - Sodium Distrbution")
+qqline(sonic$sodium)
+qqnormsim(sample = sodium, data = sonic)
+```
+  
+**Arbys**
+```{r qq-plots-arbys}
+qqnorm(arbys$sodium,main="QQ Plot: Arbys - Sodium Distribution")
+qqline(arbys$sodium)
+qqnormsim(sample = sodium, data = arbys)
+```
+
+**Taco Bell**
+```{r qq-plots-taco-bell}
+qqnorm(taco_bell$sodium,main="QQ Plot: Taco Bell - Sodium Distribution")
+qqline(taco_bell$sodium)
+qqnormsim(sample = sodium, data = taco_bell)
+```
+
+**Burger King**
+```{r qq-plots-burger-king}
+qqnorm(burger_king$sodium,main="QQ Plot: Burger King - Sodium Distribution")
+qqline(burger_king$sodium)
+qqnormsim(sample = sodium, data = burger_king)
+```
+
+**Subway**
+```{r qq-plots-subway}
+qqnorm(subway$sodium,main="QQ Plot: Subway - Sodium Distribution")
+qqline(subway$sodium)
+qqnormsim(sample = sodium, data = subway)
+```
+
+**Chick-Fil A**
+```{r qq-plots-chick-fil-a}
+qqnorm(chick_fil_a$sodium,main="QQ Plot: Chick Fil-A - Sodium Distribution")
+qqline(chick_fil_a$sodium)
+qqnormsim(sample = sodium, data = chick_fil_a)
+```
+
+**McDonalds**
+```{r qq-plots-mcd}
+qqnorm(mcdonalds$sodium,main="QQ Plot: McDonalds - Sodium Distribution")
+qqline(mcdonalds$sodium)
+qqnormsim(sample = sodium, data = mcdonalds)
+```
+
+**Dairy Queen**
+```{r qq-plots-dq}
+qqnorm(mcdonalds$sodium,main="QQ Plot: Dairy Queen - Sodium Distribution")
+qqline(dairy_queen$sodium)
+qqnormsim(sample = sodium, data = dairy_queen)
+```
+
+### Exercise 8
+
+Stepwise patterns exist when there are repeating values.  Many of the menu offerings likely have similar sodium levels to them.
+
+### Exercise 9
+
+Looking at McDonald's QQ plot, it appears the total carb distribution is for the most part normally distributed but with a slight right skew where some extreme values exist in the sample.  This is confirmed by looking at the histogram.
+```{r}
+ggplot(data = mcdonalds, aes(sample = total_carb))+ 
+  geom_line(stat = "qq")
+
+qqnormsim(sample = total_carb, data = mcdonalds)
+qqnorm(mcdonalds$total_carb,main="QQ Plot: McDonalds - Carb Distribution")
+qqline(mcdonalds$total_carb)
+
+ggplot(mcdonalds, aes(x=total_carb)) + geom_histogram(binwidth = 5) + labs(x="total carbohydrates", y="items on menu", title="Carbohydrates per Item")
+```
