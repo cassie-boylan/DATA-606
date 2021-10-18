@@ -1,0 +1,141 @@
+---
+title: "Lab 6"
+author: "Cassie Boylan"
+date: "`r Sys.Date()`"
+output: openintro::lab_report
+---
+
+```{r load-packages, message=FALSE}
+library(tidyverse)
+library(openintro)
+library(infer)
+set.seed(74226)
+```
+
+# Exercise 1
+
+  
+* 4792 have reported 0 days
+* 925 have reported 1-2 days
+* 4646 do not drive
+* 827 have reported 30 days or texting and driving everyday in the past 30 days
+
+```{r}
+yrbss %>%
+  count(text_while_driving_30d, sort=TRUE)
+```
+
+# Exercise 2
+The proportion of students who have texted everyday in the past 30 days & have not worn a helmet out of all students who have not worn a helmet is 7.12%
+```{r}
+danger <- yrbss %>%
+  filter(helmet_12m=="never") %>%
+  filter(!is.na(text_while_driving_30d)) %>%
+  mutate(text_ind_everyday = ifelse(text_while_driving_30d == "30", "yes", "no"))
+
+danger %>%
+  count(text_ind_everyday)
+  
+```
+# Exercise 3
+The 95% Confidence Interval for the proportion of students who text and drive everyday of *all* students who do not wear a helmet is between 6.5% and 7.7%.
+
+The margin of error in this case is .006 or .06%
+We could have calculated this as 1.96 x sqrt((.0712*(1-.0712)/6503))
+```{r}
+danger %>%
+ specify(response = text_ind_everyday, success = "yes") %>%
+ generate(reps = 1000, type = "bootstrap") %>%
+ calculate(stat = "prop") %>%
+ get_ci(level = 0.95)
+```
+# Exercise 4
+```{r}
+glimpse(yrbss)
+
+yrbss %>%
+  count(hours_tv_per_school_day, sort=TRUE)
+
+yrbss %>%
+  count(school_night_hours_sleep, sort=TRUE)
+
+```
+
+## TV time
+**Proportion of Interest:**
+students who reported watching less than 1 hr of tv per school day:  16.37%  
+  
+**95% Confidence Interval generated:** [.1575 - .1698]    
+We are 95% confident that the proportion of students who watch less than an hr of tv per schoolday is between 15.75% and 16.98%.  
+  
+**Margin of Error:** .00615 or .0615%
+```{r}
+tv_time<- yrbss %>%
+  filter(!is.na(hours_tv_per_school_day)) %>%
+  mutate(tv_ind_everyday = ifelse(hours_tv_per_school_day == "<1", "yes", "no"))
+
+tv_time %>%
+  count(tv_ind_everyday)
+
+tv_time %>%
+ specify(response = tv_ind_everyday, success = "yes") %>%
+ generate(reps = 1000, type = "bootstrap") %>%
+ calculate(stat = "prop") %>%
+ get_ci(level = 0.95)
+```
+## Sleep time
+**Proportion of Interest:**
+students who reported less than 5hrs of sleep on school nights: 7.82%  
+
+**95% Confidence Interval generated:** [.07377 - .0831]  
+We are 95% confident that the proportion of students who watch less than an hr of tv per schoolday is between 7.38% and 8.31%.  
+
+**Margin of Error:** .00465 or .0465%
+```{r}
+sleep_time<- yrbss %>%
+  filter(!is.na(school_night_hours_sleep)) %>%
+  mutate(sleep_ind_everyday = ifelse(school_night_hours_sleep == "<5", "yes", "no"))
+
+sleep_time %>%
+  count(sleep_ind_everyday)
+
+sleep_time %>%
+ specify(response = sleep_ind_everyday, success = "yes") %>%
+ generate(reps = 1000, type = "bootstrap") %>%
+ calculate(stat = "prop") %>%
+ get_ci(level = 0.95)
+```
+# Exercise 5
+
+The margin of error increases as the population proportion increases. Margin of error is greatest at the population of 50%. The greatest that the numerator could ever be when calculating standard error by proportion is .5 x .5.
+
+```{r}
+n <- 1000
+p <- seq(from = 0, to = 1, by = 0.01)
+me <- 2 * sqrt(p * (1 - p)/n)
+```
+
+```{r}
+dd <- data.frame(p = p, me = me)
+ggplot(data = dd, aes(x = p, y = me)) + 
+  geom_line() +
+  labs(x = "Population Proportion", y = "Margin of Error")
+```
+
+# Exercise 6
+
+The distribution of sampling proportions with sampling size of 300 is mostly bell-curved and symmetrical - sampling proportions are clustering around center with symmetrical tapering on either side.  Center is at .10 and standard deviation of the sample proportions is .017.  Spread conforms fairly uniformly to the normal bell curve shape but with slightly larger tails where greater proportion of values are showing than would be expected in a perfectly normalized distribution.
+
+
+# Exercise 7
+As proportion increases, spread gets wider and sampling proportions disperse out.  There is less and less clustering around center of range and less overall conformity to a normal distribution.
+
+
+# Excercise 8
+
+As sample size increases, there gradually can be seen more data clustering around center and more tapering from center.  Symmetry increases with sample size.  This falls in line with the general principal of CLT and assumption of enough sampling proportions/means reasonably approximating normal distribution shape.
+
+
+
+...
+
